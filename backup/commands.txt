@@ -1,0 +1,68 @@
+
+Python from Java - Direct
+---------------------------
+
+
+
+. job_server_venv/bin/activate
+
+export JOB_SERVER_PORT=10001
+
+python -m apache_beam.runners.portability.local_job_service_main -p $JOB_SERVER_PORT
+
+
+export JOB_SERVER_PORT=10001
+mvn compile exec:java -Dexec.mainClass=org.apache.beam.examples.multilanguage.RunInferenceExample     -Dexec.args="--runner=PortableRunner --jobEndpoint=localhost:$JOB_SERVER_PORT" -Pportable-runner
+
+
+Python from Java - Dataflow
+---------------------------
+
+
+mvn compile exec:java -Dexec.mainClass=org.apache.beam.examples.multilanguage.RunInferenceExample     -Dexec.args="--runner=DataflowRunner --project=$GCP_PROJECT \
+                 --region=$GCP_REGION \
+                 --gcpTempLocation=gs://$GCP_BUCKET/multi-language-beam/tmp"     -Pdataflow-runner
+
+
+
+
+
+Start the expansion service
+---------------------------
+
+export PORT="12345"
+
+java -jar beam-examples-multi-language-2.48.0.jar $PORT
+
+
+Java from Python - Direct
+---------------------------
+
+export PORT="12345"
+
+python javacount.py --runner DirectRunner --environment_type=DOCKER --input input1 --output output/counts --expansion_service_port $PORT
+
+
+Java from Python - Dataflow
+---------------------------
+
+#!/bin/bash
+export GCP_PROJECT=apache-beam-testing
+export GCS_BUCKET=apache-beam-testing-chamikara
+export TEMP_LOCATION=gs://$GCS_BUCKET/tmp
+export GCP_REGION=us-central1
+export JOB_NAME="javacount-`date +%Y%m%d-%H%M%S`"
+export NUM_WORKERS="1"
+export PORT="12345"
+
+
+python javacount.py \
+      --runner DataflowRunner \
+      --temp_location $TEMP_LOCATION \
+      --project $GCP_PROJECT \
+      --region $GCP_REGION \
+      --job_name $JOB_NAME \
+      --num_workers $NUM_WORKERS \
+      --input "gs://dataflow-samples/shakespeare/kinglear.txt" \
+      --output "gs://$GCS_BUCKET/javacount/output" \
+      --expansion_service_port $PORT
